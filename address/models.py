@@ -8,6 +8,7 @@ except ImportError:
 from django.utils.encoding import python_2_unicode_compatible
 
 from django.contrib.gis.db import models as geomodels
+from django.contrib.gis.geos import GEOSGeometry, GEOSException
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -230,12 +231,20 @@ class Address(geomodels.Model):
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
     
-    location = geomodels.PointField(_(''), srid=4326, geography=True, null=True)
+    location = geomodels.PointField(verbose_name=_('local'), srid=4326, geography=True, null=True)
 
     class Meta:
         verbose_name_plural = 'Addresses'
         ordering = ('locality', 'route', 'street_number')
         # unique_together = ('locality', 'route', 'street_number')
+        
+    def save(self, *args, **kwargs):
+        try:
+            self.location = GEOSGeometry('POINT(%s %s)' %(self.longitude, self.latitude))
+        except GEOSException as e:
+            logger.error('GEOS exception found, location not assigned')
+            logger.error(e)
+        super(Address, self).save(*args, **kwargs)
 
     def __str__(self):
         if self.formatted != '':
