@@ -7,6 +7,10 @@ except ImportError:
     from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor as ForwardManyToOneDescriptor
 from django.utils.encoding import python_2_unicode_compatible
 
+from django.contrib.gis.db import models as geomodels
+
+from django.utils.translation import ugettext_lazy as _
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -217,7 +221,7 @@ class Locality(models.Model):
 ## decomposed address we will store the raw address string in `raw`.
 ##
 @python_2_unicode_compatible
-class Address(models.Model):
+class Address(geomodels.Model):
     street_number = models.CharField(max_length=20, blank=True)
     route = models.CharField(max_length=100, blank=True)
     locality = models.ForeignKey(Locality, related_name='addresses', blank=True, null=True)
@@ -225,6 +229,8 @@ class Address(models.Model):
     formatted = models.CharField(max_length=200, blank=True)
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
+    
+    location = geomodels.PointField(_(''), srid=4326, geography=True, null=True)
 
     class Meta:
         verbose_name_plural = 'Addresses'
