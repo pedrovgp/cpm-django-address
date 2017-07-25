@@ -99,5 +99,14 @@ class AddressField(forms.ModelChoiceField):
                                                     params={'field': field})
                 else:
                     value[field] = None
+        
+        # Check for required location data and raise validationerros if not ok
+        for field in ['country', 'state', 'locality', 'street_number', 'route',
+                      'latitude', 'longitude']:
+            if field in value:
+                if not value[field]:
+                        raise forms.ValidationError('Esse endereço não tem %(field)s', 
+                                code='invalid',
+                                params={'field': self.translate_.get(field,'ERRO')})
 
         return to_python(value)
