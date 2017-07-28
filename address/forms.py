@@ -17,13 +17,19 @@ if sys.version > '3':
 __all__ = ['AddressWidget', 'AddressField']
 
 class AddressWidget(forms.TextInput):
-    components = [('country', 'country'), ('country_code', 'country_short'),
-                  ('locality', 'locality'), ('postal_code', 'postal_code'),
-                  ('route', 'route'), ('street_number', 'street_number'),
+    components = [('country', 'country'),
+                  ('country_code', 'country_short'),
+                  ('locality', 'locality'),
+                  ('postal_code', 'postal_code'),
+                  ('route', 'route'),
+                  ('street_number', 'street_number'),
                   ('state', 'administrative_area_level_1'),
                   ('state_code', 'administrative_area_level_1_short'),
+                  ('city', 'administrative_area_level_2'),
+                  ('city_code', 'administrative_area_level_2_short'),
                   ('formatted', 'formatted_address'),
-                  ('latitude', 'lat'), ('longitude', 'lng')]
+                  ('latitude', 'lat'),
+                  ('longitude', 'lng')]
 
     class Media:
         js = (
@@ -85,7 +91,8 @@ class AddressField(forms.ModelChoiceField):
         'street_number':'número de rua/avenida',
         'route':'nome de rua/avenida',
         'latitude':'latitude',
-        'longitude':'longitude'}
+        'longitude':'longitude',
+        'city':'cidade'}
 
 
     def __init__(self, *args, **kwargs):
@@ -116,6 +123,10 @@ class AddressField(forms.ModelChoiceField):
             if field in value:
                 if not value[field]:
                         raise forms.ValidationError('Esse endereço não tem %(field)s', 
+                                code='invalid',
+                                params={'field': self.translate_.get(field,'ERRO')})
+        if not value['locality'] and not value['city']:
+                        raise forms.ValidationError('Esse endereço não tem %(city)s', 
                                 code='invalid',
                                 params={'field': self.translate_.get(field,'ERRO')})
 

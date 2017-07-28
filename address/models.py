@@ -34,16 +34,23 @@ def _to_python(value):
     state = value.get('state', '')
     state_code = value.get('state_code', '')
     locality = value.get('locality', '')
+    city = value.get('city', '')
+    city_code = value.get('city_code', '')
     postal_code = value.get('postal_code', '')
     street_number = value.get('street_number', '')
     route = value.get('route', '')
     formatted = value.get('formatted', '')
     latitude = value.get('latitude', None)
     longitude = value.get('longitude', None)
+    
+    
     try:
         logger.debug('Lat and long: %s and %s' %(latitude, longitude))
         logger.debug('Trying to set location')
+        
         location = GEOSGeometry('POINT(%s %s)' %(longitude, latitude))
+        
+        logger.debug('Location set:')
         logger.debug(location)
     except GEOSException as e:
         logger.error('GEOS exception found, location not assigned')
@@ -56,7 +63,11 @@ def _to_python(value):
         return None
 
     # If we have an inconsistent set of value bail out now.
+    if not locality:
+        locality = city
     if (country or state or locality) and not (country and state and locality):
+        logger.debug('Inconsistency found. Country, state and locality trouble.')
+        logger.debug(country, state, locality)
         raise InconsistentDictError
 
     # Handle the country.
@@ -103,7 +114,7 @@ def _to_python(value):
                 street_number=street_number,
                 route=route,
                 locality=locality_obj,
-                location=location
+                location__intersects=location
             )
     except Address.DoesNotExist:
         logger.debug('Creating address, with location: ')
@@ -136,30 +147,37 @@ def to_python(value):
 
     # Keep `None`s.
     if value is None:
+        logger.debug('Value is None')
         return None
 
     # Is it already an address object?
     if isinstance(value, Address):
+        logger.debug('Value is instance of Address')
         return value
 
     # If we have an integer, assume it is a model primary key. This is mostly for
     # Django being a cunt.
     elif isinstance(value, (int, long)):
+        logger.debug('Value is int or long. Apparently Django is being a cunt.')
         return value
 
     # A string is considered a raw value.
     elif isinstance(value, basestring):
+        logger.debug('Value is basestring, considered raw value')
         obj = Address(raw=value)
         obj.save()
         return obj
 
     # A dictionary of named address components.
     elif isinstance(value, dict):
+        logger.debug('Value is dict')
 
         # Attempt a conversion.
         try:
             return _to_python(value)
         except InconsistentDictError:
+            logger.debug('InconsistentDict')
+            logger.debug(InconsistentDictError)
             return Address.objects.create(raw=value['raw'])
 
     # Not in any of the formats I recognise.
