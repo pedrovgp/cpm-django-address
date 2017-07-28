@@ -40,6 +40,16 @@ def _to_python(value):
     formatted = value.get('formatted', '')
     latitude = value.get('latitude', None)
     longitude = value.get('longitude', None)
+    try:
+        logger.debug('Lat and long: %s and %s' %(latitude, longitude))
+        logger.debug('Trying to set location')
+        location = GEOSGeometry('POINT(%s %s)' %(longitude, latitude))
+        logger.debug(location)
+    except GEOSException as e:
+        logger.error('GEOS exception found, location not assigned')
+        logger.error(e)
+        location=None
+        logger.debug('FAILED to set location: Location set to None')
 
     # If there is no value (empty raw) then return None.
     if not raw:
@@ -92,9 +102,12 @@ def _to_python(value):
             address_obj = Address.objects.get(
                 street_number=street_number,
                 route=route,
-                locality=locality_obj
+                locality=locality_obj,
+                location=location
             )
     except Address.DoesNotExist:
+        logger.debug('Creating address, with location: ')
+        logger.debug(location)
         address_obj = Address(
             street_number=street_number,
             route=route,
@@ -103,6 +116,7 @@ def _to_python(value):
             formatted=formatted,
             latitude=latitude,
             longitude=longitude,
+            location=location
         )
 
         # If "formatted" is empty try to construct it from other values.
@@ -239,11 +253,14 @@ class Address(geomodels.Model):
         # unique_together = ('locality', 'route', 'street_number')
         
     def save(self, *args, **kwargs):
-        try:
-            self.location = GEOSGeometry('POINT(%s %s)' %(self.longitude, self.latitude))
-        except GEOSException as e:
-            logger.error('GEOS exception found, location not assigned')
-            logger.error(e)
+        logger.debug('In save method Location is: ')
+        logger.debug(self.location)
+        logger.debug('trying saving')
+#         try:
+#             self.location = GEOSGeometry('POINT(%s %s)' %(self.longitude, self.latitude))
+#         except GEOSException as e:
+#             logger.error('GEOS exception found, location not assigned')
+#             logger.error(e)
         super(Address, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -276,6 +293,7 @@ class Address(geomodels.Model):
             formatted=self.formatted,
             latitude=self.latitude if self.latitude else '',
             longitude=self.longitude if self.longitude else '',
+            location=self.location if self.location else None,
         )
         if self.locality:
             ad['locality'] = self.locality.name
