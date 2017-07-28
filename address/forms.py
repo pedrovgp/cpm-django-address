@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django import forms
 # from uni_form.helpers import *
 from django.utils.safestring import mark_safe
@@ -77,6 +78,15 @@ class AddressWidget(forms.TextInput):
 
 class AddressField(forms.ModelChoiceField):
     widget = AddressWidget
+    translate_ = {
+        'country':'país',
+        'state':'estado',
+        'locality':'cidade',
+        'street_number':'número de rua/avenida',
+        'route':'nome de rua/avenida',
+        'latitude':'latitude',
+        'longitude':'longitude'}
+
 
     def __init__(self, *args, **kwargs):
         kwargs['queryset'] = Address.objects.none()
@@ -99,5 +109,14 @@ class AddressField(forms.ModelChoiceField):
                                                     params={'field': field})
                 else:
                     value[field] = None
+        
+        # Check for required location data and raise validationerros if not ok
+        for field in ['country', 'state', 'street_number', 'route',
+                      'latitude', 'longitude']:
+            if field in value:
+                if not value[field]:
+                        raise forms.ValidationError('Esse endereço não tem %(field)s', 
+                                code='invalid',
+                                params={'field': self.translate_.get(field,'ERRO')})
 
         return to_python(value)
