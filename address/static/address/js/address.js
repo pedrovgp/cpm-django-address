@@ -6,8 +6,10 @@ $(function(){
         self.geocomplete({
             details: cmps,
             detailsAttribute: 'data-geo'
-        }).change(function(){
-	    if(self.val() != fmtd.val()) {
+        }).on('change keyup',function(e){
+    	    if (e && e.keyCode!==13){
+    	    	
+    	    } else if(self.val() != fmtd.val()) {
 		var cmp_names = ['country', 'country_code', 'locality', 'postal_code',
 				 'route', 'street_number', 'state', 'state_code',
 				 'formatted', 'latitude', 'longitude'];
