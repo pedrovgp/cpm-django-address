@@ -7,6 +7,8 @@ from .models import Address, to_python
 import logging
 logger = logging.getLogger(__name__)
 
+from django.utils.translation import ugettext_lazy as _
+
 # Python 3 fixes.
 import sys
 if sys.version > '3':
@@ -93,6 +95,13 @@ class AddressField(forms.ModelChoiceField):
         'latitude':'latitude',
         'longitude':'longitude',
         'city':'cidade'}
+    
+    messages = {
+        'default': _('Oops! Não conseguimos encontrar o seu endereço. É preciso selecioná-lo ' +
+                     'da lista que irá aparecer. Tente escrever primeiro o número da casa/prédio, seguido ' +
+                     'do nome da rua. Se continuar com problemas, escreve para a gente!'),
+        
+        }
 
 
     def __init__(self, *args, **kwargs):
@@ -122,12 +131,17 @@ class AddressField(forms.ModelChoiceField):
                       'latitude', 'longitude']:
             if field in value:
                 if not value[field]:
-                        raise forms.ValidationError('Esse endereço não tem %(field)s', 
+                        raise forms.ValidationError(self.messages.get('default'), 
                                 code='invalid',
-                                params={'field': self.translate_.get(field,'ERRO')})
+                                )
         if not value['locality'] and not value['city']:
-                        raise forms.ValidationError('Esse endereço não tem %(city)s', 
+                        raise forms.ValidationError(self.messages.get('default'), 
                                 code='invalid',
-                                params={'field': self.translate_.get(field,'ERRO')})
+                                )
+        # OLD ERROR MESSAAGES
+#         if not value['locality'] and not value['city']:
+#                         raise forms.ValidationError('Esse endereço não tem %(city)s', 
+#                                 code='invalid',
+#                                 params={'field': self.translate_.get(field,'ERRO')})
 
         return to_python(value)
