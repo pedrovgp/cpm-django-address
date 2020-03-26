@@ -1,11 +1,15 @@
-from django.db import models
+import logging
+import sys
+
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.db.models.fields.related import ForeignObject
+from django.utils.encoding import python_2_unicode_compatible
+
 try:
     from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 except ImportError:
     from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor as ForwardManyToOneDescriptor
-from django.utils.encoding import python_2_unicode_compatible
 
 from django.contrib.gis.db import models as geomodels
 from django.contrib.gis.geos import GEOSGeometry, GEOSException
@@ -15,8 +19,6 @@ from django.utils.translation import ugettext_lazy as _
 import logging
 logger = logging.getLogger(__name__)
 
-# Python 3 fixes.
-import sys
 if sys.version > '3':
     long = int
     basestring = (str, bytes)
@@ -24,8 +26,10 @@ if sys.version > '3':
 
 __all__ = ['Country', 'State', 'Locality', 'Address', 'AddressField']
 
+
 class InconsistentDictError(Exception):
     pass
+
 
 def _to_python(value):
     raw = value.get('raw', '')
@@ -36,20 +40,21 @@ def _to_python(value):
     locality = value.get('locality', '')
     city = value.get('city', '')
     city_code = value.get('city_code', '')
+    sublocality = value.get('sublocality', '')
     postal_code = value.get('postal_code', '')
     street_number = value.get('street_number', '')
     route = value.get('route', '')
     formatted = value.get('formatted', '')
     latitude = value.get('latitude', None)
     longitude = value.get('longitude', None)
-    
-    
+
+
     try:
         logger.debug('Lat and long: %s and %s' %(latitude, longitude))
         logger.debug('Trying to set location')
-        
+
         location = GEOSGeometry('POINT(%s %s)' %(longitude, latitude))
-        
+
         logger.debug('Location set:')
         logger.debug(location)
     except GEOSException as e:
@@ -61,6 +66,10 @@ def _to_python(value):
     # If there is no value (empty raw) then return None.
     if not raw:
         return None
+
+    # Fix issue with NYC boroughs (https://code.google.com/p/gmaps-api-issues/issues/detail?id=635)
+    if not locality and sublocality:
+        locality = sublocality
 
     # If we have an inconsistent set of value bail out now.
     if not locality:
@@ -77,7 +86,7 @@ def _to_python(value):
         if country:
             if len(country_code) > Country._meta.get_field('code').max_length:
                 if country_code != country:
-                    raise ValueError('Invalid country code (too long): %s'%country_code)
+                    raise ValueError('Invalid country code (too long): %s' % country_code)
                 country_code = ''
             country_obj = Country.objects.create(name=country, code=country_code)
         else:
@@ -90,7 +99,7 @@ def _to_python(value):
         if state:
             if len(state_code) > State._meta.get_field('code').max_length:
                 if state_code != state:
-                    raise ValueError('Invalid state code (too long): %s'%state_code)
+                    raise ValueError('Invalid state code (too long): %s' % state_code)
                 state_code = ''
             state_obj = State.objects.create(name=state, code=state_code, country=country_obj)
         else:
@@ -98,7 +107,7 @@ def _to_python(value):
 
     # Handle the locality.
     try:
-        locality_obj = Locality.objects.get(name=locality, state=state_obj)
+        locality_obj = Locality.objects.get(name=locality, postal_code=postal_code, state=state_obj)
     except Locality.DoesNotExist:
         if locality:
             locality_obj = Locality.objects.create(name=locality, postal_code=postal_code, state=state_obj)
@@ -141,8 +150,10 @@ def _to_python(value):
     return address_obj
 
 ##
-## Convert a dictionary to an address.
+# Convert a dictionary to an address.
 ##
+
+
 def to_python(value):
 
     # Keep `None`s.
@@ -184,28 +195,32 @@ def to_python(value):
     raise ValidationError('Invalid address value.')
 
 ##
-## A country.
+# A country.
 ##
+
+
 @python_2_unicode_compatible
 class Country(models.Model):
     name = models.CharField(max_length=40, unique=True, blank=True)
-    code = models.CharField(max_length=2, blank=True) # not unique as there are duplicates (IT)
+    code = models.CharField(max_length=2, blank=True)  # not unique as there are duplicates (IT)
 
     class Meta:
         verbose_name_plural = 'Countries'
         ordering = ('name',)
 
     def __str__(self):
-        return '%s'%(self.name or self.code)
+        return '%s' % (self.name or self.code)
 
 ##
-## A state. Google refers to this as `administration_level_1`.
+# A state. Google refers to this as `administration_level_1`.
 ##
+
+
 @python_2_unicode_compatible
 class State(models.Model):
     name = models.CharField(max_length=165, blank=True)
     code = models.CharField(max_length=3, blank=True)
-    country = models.ForeignKey(Country, related_name='states')
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name='states')
 
     class Meta:
         unique_together = ('name', 'country')
@@ -213,63 +228,67 @@ class State(models.Model):
 
     def __str__(self):
         txt = self.to_str()
-        country = '%s'%self.country
+        country = '%s' % self.country
         if country and txt:
             txt += ', '
         txt += country
         return txt
 
     def to_str(self):
-        return '%s'%(self.name or self.code)
+        return '%s' % (self.name or self.code)
 
 ##
-## A locality (suburb).
+# A locality (suburb).
 ##
+
+
 @python_2_unicode_compatible
 class Locality(models.Model):
     name = models.CharField(max_length=165, blank=True)
     postal_code = models.CharField(max_length=10, blank=True)
-    state = models.ForeignKey(State, related_name='localities')
+    state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='localities')
 
     class Meta:
         verbose_name_plural = 'Localities'
-        unique_together = ('name', 'state')
+        unique_together = ('name', 'postal_code', 'state')
         ordering = ('state', 'name')
 
     def __str__(self):
-        txt = '%s'%self.name
+        txt = '%s' % self.name
         state = self.state.to_str() if self.state else ''
         if txt and state:
             txt += ', '
         txt += state
         if self.postal_code:
-            txt += ' %s'%self.postal_code
-        cntry = '%s'%(self.state.country if self.state and self.state.country else '')
+            txt += ' %s' % self.postal_code
+        cntry = '%s' % (self.state.country if self.state and self.state.country else '')
         if cntry:
-            txt += ', %s'%cntry
+            txt += ', %s' % cntry
         return txt
 
 ##
-## An address. If for any reason we are unable to find a matching
-## decomposed address we will store the raw address string in `raw`.
+# An address. If for any reason we are unable to find a matching
+# decomposed address we will store the raw address string in `raw`.
 ##
+
+
 @python_2_unicode_compatible
 class Address(geomodels.Model):
     street_number = models.CharField(max_length=20, blank=True)
     route = models.CharField(max_length=100, blank=True)
-    locality = models.ForeignKey(Locality, related_name='addresses', blank=True, null=True)
+    locality = models.ForeignKey(Locality, on_delete=models.CASCADE, related_name='addresses', blank=True, null=True)
     raw = models.CharField(max_length=200)
     formatted = models.CharField(max_length=200, blank=True)
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
-    
+
     location = geomodels.PointField(verbose_name=_('local'), srid=4326, geography=True, null=True)
 
     class Meta:
         verbose_name_plural = 'Addresses'
         ordering = ('locality', 'route', 'street_number')
         # unique_together = ('locality', 'route', 'street_number')
-        
+
     def save(self, *args, **kwargs):
         logger.debug('In save method Location is: ')
         logger.debug(self.location)
@@ -283,20 +302,20 @@ class Address(geomodels.Model):
 
     def __str__(self):
         if self.formatted != '':
-            txt = '%s'%self.formatted
+            txt = '%s' % self.formatted
         elif self.locality:
             txt = ''
             if self.street_number:
-                txt = '%s'%self.street_number
+                txt = '%s' % self.street_number
             if self.route:
                 if txt:
-                    txt += ' %s'%self.route
-            locality = '%s'%self.locality
+                    txt += ' %s' % self.route
+            locality = '%s' % self.locality
             if txt and locality:
                 txt += ', '
             txt += locality
         else:
-            txt = '%s'%self.raw
+            txt = '%s' % self.raw
         return txt
 
     def clean(self):
@@ -324,23 +343,30 @@ class Address(geomodels.Model):
                     ad['country_code'] = self.locality.state.country.code
         return ad
 
+
 class AddressDescriptor(ForwardManyToOneDescriptor):
 
     def __set__(self, inst, value):
         super(AddressDescriptor, self).__set__(inst, to_python(value))
 
 ##
-## A field for addresses in other models.
+# A field for addresses in other models.
 ##
+
+
 class AddressField(models.ForeignKey):
     description = 'An address'
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         kwargs['to'] = 'address.Address'
-        super(AddressField, self).__init__(**kwargs)
+        super(AddressField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
-        super(ForeignObject, self).contribute_to_class(cls, name, virtual_only=virtual_only)
+        from address.compat import compat_contribute_to_class
+
+        compat_contribute_to_class(self, cls, name, virtual_only)
+        # super(ForeignObject, self).contribute_to_class(cls, name, virtual_only=virtual_only)
+
         setattr(cls, self.name, AddressDescriptor(self))
 
     # def deconstruct(self):

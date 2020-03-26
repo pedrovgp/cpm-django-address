@@ -1,7 +1,9 @@
-import os, sys
-from setuptools import setup, find_packages
+import os
+import sys
 
-version = '0.1.4'
+from setuptools import find_packages, setup
+
+version = '0.2.1'
 
 if sys.argv[-1] == 'tag':
     print("Tagging the version on github:")
@@ -19,7 +21,7 @@ setup(
     url='https://github.com/furious-luke/django-address',
     description='A django application for describing addresses.',
     long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
-    classifiers = [
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Framework :: Django',
         'Framework :: Django :: 1.7',

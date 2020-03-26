@@ -3,8 +3,10 @@ from django.forms import ValidationError, Form
 from address.forms import AddressField, AddressWidget
 from address.models import Address
 
+
 class TestForm(Form):
     address = AddressField()
+
 
 class AddressFieldTestCase(TestCase):
 
@@ -34,6 +36,22 @@ class AddressFieldTestCase(TestCase):
         self.assertEqual(self.field.to_python({'latitude': ''}), None)
         self.assertEqual(self.field.to_python({'longitude': ''}), None)
 
+    def test_to_python_no_locality(self):
+        input = {
+            'country': 'United States',
+            'country_code': 'US',
+            'state': 'New York',
+            'state_code': 'NY',
+            'locality': '',
+            'sublocality': 'Brooklyn',
+            'postal_code': '11201',
+            'route': 'Joralemon St',
+            'street_number': '209',
+            'raw': '209 Joralemon Street, Brooklyn, NY, United States'
+        }
+        res = self.field.to_python(input)
+        self.assertEqual(res.locality.name, 'Brooklyn')
+
     # TODO: Fix
     # def test_to_python_empty_state(self):
     #     val = self.field.to_python(self.missing_state)
@@ -47,6 +65,7 @@ class AddressFieldTestCase(TestCase):
     def test_render(self):
         html = self.form.as_table()
         # TODO: Check html
+
 
 class AddressWidgetTestCase(TestCase):
 

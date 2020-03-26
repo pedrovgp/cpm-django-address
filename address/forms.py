@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
-from django import forms
-# from uni_form.helpers import *
-from django.utils.safestring import mark_safe
-from .models import Address, to_python
-
 import logging
-logger = logging.getLogger(__name__)
+import sys
+
+from django import forms
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.utils.safestring import mark_safe
+
+from .models import Address, to_python
+from .widgets import AddressWidget
 
 from django.utils.translation import ugettext_lazy as _
 
 # Python 3 fixes.
 import sys
+
 if sys.version > '3':
     long = int
     basestring = (str, bytes)
@@ -66,23 +70,13 @@ class AddressWidget(forms.TextInput):
         # input. Begin by generating the raw input.
         elems = [super(AddressWidget, self).render(name, ad.get('formatted', None), attrs, **kwargs)]
 
-        # Now add the hidden fields.
-        elems.append('<div id="%s_components">'%name)
-        for com in self.components:
-            elems.append('<input type="hidden" name="%s_%s" data-geo="%s" value="%s" />'%(
-                name, com[0], com[1], ad.get(com[0], ''))
-            )
-        elems.append('</div>')
+logger = logging.getLogger(__name__)
 
-        return mark_safe(unicode('\n'.join(elems)))
+__all__ = ['AddressWidget', 'AddressField']
 
-    def value_from_datadict(self, data, files, name):
-        raw = data.get(name, '')
-        if not raw:
-            return raw
-        ad = dict([(c[0], data.get(name + '_' + c[0], '')) for c in self.components])
-        ad['raw'] = raw
-        return ad
+if not settings.GOOGLE_API_KEY:
+    raise ImproperlyConfigured("GOOGLE_API_KEY is not configured in settings.py")
+
 
 class AddressField(forms.ModelChoiceField):
     widget = AddressWidget
@@ -95,12 +89,12 @@ class AddressField(forms.ModelChoiceField):
         'latitude':'latitude',
         'longitude':'longitude',
         'city':'cidade'}
-    
+
     messages = {
         'default': _('Oops! Não conseguimos encontrar o seu endereço. É preciso selecioná-lo ' +
                      'da lista que irá aparecer. Tente escrever primeiro o número da casa/prédio, seguido ' +
                      'do nome da rua. Se continuar com problemas, escreve para a gente!'),
-        
+
         }
 
 
@@ -120,27 +114,30 @@ class AddressField(forms.ModelChoiceField):
                 if value[field]:
                     try:
                         value[field] = float(value[field])
-                    except:
-                        raise forms.ValidationError('Invalid value for %(field)s', code='invalid',
-                                                    params={'field': field})
+                    except Exception:
+                        raise forms.ValidationError(
+                            'Invalid value for %(field)s',
+                            code='invalid',
+                            params={'field': field}
+                        )
                 else:
                     value[field] = None
-        
+
         # Check for required location data and raise validationerros if not ok
         for field in ['country', 'state', 'street_number', 'route',
                       'latitude', 'longitude']:
             if field in value:
                 if not value[field]:
-                        raise forms.ValidationError(self.messages.get('default'), 
+                        raise forms.ValidationError(self.messages.get('default'),
                                 code='invalid',
                                 )
         if not value['locality'] and not value['city']:
-                        raise forms.ValidationError(self.messages.get('default'), 
+                        raise forms.ValidationError(self.messages.get('default'),
                                 code='invalid',
                                 )
         # OLD ERROR MESSAAGES
 #         if not value['locality'] and not value['city']:
-#                         raise forms.ValidationError('Esse endereço não tem %(city)s', 
+#                         raise forms.ValidationError('Esse endereço não tem %(city)s',
 #                                 code='invalid',
 #                                 params={'field': self.translate_.get(field,'ERRO')})
 
