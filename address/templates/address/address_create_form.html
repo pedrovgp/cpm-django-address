@@ -21,6 +21,7 @@
 
 {% block javascript %}
   {{ block.super }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.js" crossorigin="anonymous"></script>
   {{form.media}} <!-- needed for JS/GoogleMaps lookup -->
   <script>
 /*
@@ -34,7 +35,7 @@
 // quando o usuário sair do campo "cep"
 $("#id_zip_code").blur(function(){
 	// Remove tudo o que não é número para fazer a pesquisa
-	var cep = this.value.replace(/[^0-9]/, "");
+	var cep = this.value.replace(/[^0-9]+/g, "");
 
 	// Validação do CEP; caso o CEP não possua 8 números, então cancela
 	// a consulta
@@ -62,28 +63,6 @@ $("#id_zip_code").blur(function(){
 	});
 });
 
-// Restricts input for the given textbox to the given inputFilter.
-function setInputFilter(textbox, inputFilter) {
-  ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function(event) {
-    textbox.addEventListener(event, function() {
-      if (inputFilter(this.value)) {
-        this.oldValue = this.value;
-        this.oldSelectionStart = this.selectionStart;
-        this.oldSelectionEnd = this.selectionEnd;
-      } else if (this.hasOwnProperty("oldValue")) {
-        this.value = this.oldValue;
-        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-      } else {
-        this.value = "";
-      }
-    });
-  });
-}
-
-
-// Install input filters.
-setInputFilter(document.getElementById("id_zip_code"), function(value) {
-  return /^-?\d*$/.test(value); });
 </script>
 
 {% endblock javascript %}
