@@ -15,6 +15,7 @@ except ImportError:
 
 from django.contrib.gis.db import models as geomodels
 from django.contrib.gis.geos import GEOSGeometry, GEOSException
+from django.contrib.gis.geos import Point
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -319,6 +320,8 @@ class Address(AuditMixin, geomodels.Model):
         location = geolocator.geocode(self.geocode_query_str(), country_codes=['br'])
         if location:
             self.latitude, self.longitude = location.latitude, location.longitude
+        if self.longitude and self.latitude:
+            self.location = Point(self.longitude, self.latitude)
 
         super(Address, self).save(*args, **kwargs)
 
