@@ -20,6 +20,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from compramim.compra.models import AuditMixin
 
+from geopy.geocoders import Nominatim
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -308,18 +310,30 @@ class Address(AuditMixin, geomodels.Model):
 #         except GEOSException as e:
 #             logger.error('GEOS exception found, location not assigned')
 #             logger.error(e)
-        super(Address, self).save(*args, **kwargs)
 
         # TODO Use info to fetch lat lon from some service
         # check update_buyer_deliveryarearelation
         # it receives buyer post_save signal and uses location, so location must be achieved before
         # saving buyer below
+        geolocator = Nominatim(user_agent="cpm", timeout=5)
+        location = geolocator.geocode(self.geocode_query_str(), country_codes=['br'])
+        if location:
+            self.latitude, self.longitude = location.latitude, location.longitude
+
+        super(Address, self).save(*args, **kwargs)
 
         # post save, set user's address to this
         b = Buyer.objects.get(pk=self.owner)
         b.address = self
         b.save()
 
+
+    def geocode_query_str(self):
+        """Returns a seingle string suitable for geocoding"""
+        return ', '.join([x for x in [self.street_number+' '+self.route,
+                                      self.city,
+                                      self.state,
+                                      ] if x])
 
     def __str__(self):
         return ', '.join([x for x in [self.street_number+' '+self.route,
