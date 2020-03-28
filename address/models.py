@@ -311,7 +311,7 @@ class Address(AuditMixin, geomodels.Model):
 
         # TODO Use info to fetch lat lon from some service
         # check update_buyer_deliveryarearelation
-        # it receives buyer post_save signal and uses location, so locaion must be achieved before
+        # it receives buyer post_save signal and uses location, so location must be achieved before
         # saving buyer below
 
         # post save, set user's address to this
