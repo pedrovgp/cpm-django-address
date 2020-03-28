@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import re
 import sys
 
 from crispy_forms.helper import FormHelper
@@ -26,7 +27,17 @@ if sys.version > '3':
 
 __all__ = ['AddressWidget', 'AddressField', 'AddressForm']
 
+
+class ZipField(forms.CharField):
+
+    def to_python(self, value):
+        value = re.sub('[^0-9]', '', value)
+        return super(ZipField, self).to_python(value)
+
+
 class AddressForm(forms.ModelForm):
+
+    zip_code = ZipField()
 
     def __init__(self, *args, **kwargs):
         super(AddressForm, self).__init__(*args, **kwargs)
@@ -41,6 +52,7 @@ class AddressForm(forms.ModelForm):
                                           data_mask='00.000-000',
                                           ),
                                     Field('street_number'),
+                                    Field('extra'),
                                     Field('route'),
                                     Field('neigh'),
                                     Field('city'),
@@ -52,8 +64,9 @@ class AddressForm(forms.ModelForm):
 
     class Meta:
         model = Address
-        fields = ['zip_code', 'street_number', 'route', 'neigh', 'city', 'state']
+        fields = ['zip_code', 'street_number', 'extra', 'route', 'neigh', 'city', 'state']
         # widgets = {'zip_code': forms.TextInput(attrs={'data-mask': "01234-000"})}
+
 
 class AddressWidget(forms.TextInput):
     components = [('country', 'country'),

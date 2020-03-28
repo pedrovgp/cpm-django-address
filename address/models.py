@@ -278,8 +278,9 @@ class Locality(models.Model):
 
 @python_2_unicode_compatible
 class Address(AuditMixin, geomodels.Model):
-    zip_code = models.CharField(_('CEP'), max_length=20, blank=True, help_text='Apenas números.')
+    zip_code = models.CharField(_('CEP'), max_length=8, blank=True, help_text=_('Apenas números.'))
     street_number = models.CharField(_('Número'), max_length=20, blank=True)
+    extra = models.CharField(_('Complemento'), max_length=50, blank=True, help_text=_('Ex.: Bloco A, apto. 40, casa 2'))
     route = models.CharField(_('Nome da rua/avenida'), max_length=100, blank=True)
     neigh = models.CharField(_('Bairro'), max_length=100, blank=True)
     city = models.CharField(_('Cidade'), max_length=100, blank=True)
@@ -321,29 +322,14 @@ class Address(AuditMixin, geomodels.Model):
 
 
     def __str__(self):
-        return ', '.join([x for x in [self.street_number+' '+self.route, self.neigh, self.city, self.state] if x])
+        return ', '.join([x for x in [self.street_number+' '+self.route,
+                                      self.neigh,
+                                      self.city,
+                                      self.state,
+                                      ' - CEP: '+self.zip_code,
+                                      'Complemento: ' + self.extra,
+                                      ] if x])
 
-        # old
-        # if self.formatted != '':
-        #     txt = '%s' % self.formatted
-        # elif self.locality:
-        #     txt = ''
-        #     if self.street_number:
-        #         txt = '%s' % self.street_number
-        #     if self.route:
-        #         if txt:
-        #             txt += ' %s' % self.route
-        #     locality = '%s' % self.locality
-        #     if txt and locality:
-        #         txt += ', '
-        #     txt += locality
-        # else:
-        #     txt = '%s' % self.raw
-        # return txt
-
-    # def clean(self):
-    #     if not self.raw:
-    #         raise ValidationError('Addresses may not have a blank `raw` field.')
 
     def as_dict(self):
         ad = dict(
