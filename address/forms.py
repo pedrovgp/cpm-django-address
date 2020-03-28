@@ -2,6 +2,9 @@
 import logging
 import sys
 
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Field
+
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -29,11 +32,19 @@ class AddressForm(forms.ModelForm):
         super(AddressForm, self).__init__(*args, **kwargs)
         self.fields['route'].required = True
 
+        self.helper = FormHelper()
+
+        # Moving field labels into placeholders
+        self.helper.layout = Layout(Field('zip_code',
+                                          placeholder='00.000-000',
+                                          maxlength=8,
+                                          data_mask='00.000-000',
+                                          ))
 
     class Meta:
         model = Address
         fields = ['zip_code', 'street_number', 'route', 'neigh', 'city', 'state']
-        widgets = {'zip_code': forms.TextInput(attrs={'data-mask': "01234-000"})}
+        # widgets = {'zip_code': forms.TextInput(attrs={'data-mask': "01234-000"})}
 
 class AddressWidget(forms.TextInput):
     components = [('country', 'country'),
