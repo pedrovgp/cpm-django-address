@@ -6,6 +6,8 @@ from django.db import models
 from django.db.models.fields.related import ForeignObject
 from django.utils.encoding import python_2_unicode_compatible
 
+from compramim.users.models import Buyer
+
 try:
     from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 except ImportError:
@@ -15,6 +17,8 @@ from django.contrib.gis.db import models as geomodels
 from django.contrib.gis.geos import GEOSGeometry, GEOSException
 
 from django.utils.translation import ugettext_lazy as _
+
+from compramim.compra.models import AuditMixin
 
 import logging
 logger = logging.getLogger(__name__)
@@ -273,11 +277,15 @@ class Locality(models.Model):
 
 
 @python_2_unicode_compatible
-class Address(geomodels.Model):
-    street_number = models.CharField(max_length=20, blank=True)
-    route = models.CharField(max_length=100, blank=True)
+class Address(AuditMixin, geomodels.Model):
+    zip_code = models.CharField(_('CEP'), max_length=20, blank=True, help_text='Apenas números.')
+    street_number = models.CharField(_('Número'), max_length=20, blank=True)
+    route = models.CharField(_('Nome da rua/avenida'), max_length=100, blank=True)
+    neigh = models.CharField(_('Bairro'), max_length=100, blank=True)
+    city = models.CharField(_('Cidade'), max_length=100, blank=True)
+    state = models.CharField(_('Estado'), max_length=100, blank=True)
     locality = models.ForeignKey(Locality, on_delete=models.CASCADE, related_name='addresses', blank=True, null=True)
-    raw = models.CharField(max_length=200)
+    raw = models.CharField(max_length=200, null=True, blank=True)
     formatted = models.CharField(max_length=200, blank=True)
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
@@ -293,6 +301,7 @@ class Address(geomodels.Model):
         logger.debug('In save method Location is: ')
         logger.debug(self.location)
         logger.debug('trying saving')
+
 #         try:
 #             self.location = GEOSGeometry('POINT(%s %s)' %(self.longitude, self.latitude))
 #         except GEOSException as e:
@@ -300,27 +309,41 @@ class Address(geomodels.Model):
 #             logger.error(e)
         super(Address, self).save(*args, **kwargs)
 
-    def __str__(self):
-        if self.formatted != '':
-            txt = '%s' % self.formatted
-        elif self.locality:
-            txt = ''
-            if self.street_number:
-                txt = '%s' % self.street_number
-            if self.route:
-                if txt:
-                    txt += ' %s' % self.route
-            locality = '%s' % self.locality
-            if txt and locality:
-                txt += ', '
-            txt += locality
-        else:
-            txt = '%s' % self.raw
-        return txt
+        # TODO Use info to fetch lat lon from some service
+        # check update_buyer_deliveryarearelation
+        # it receives buyer post_save signal and uses location, so locaion must be achieved before
+        # saving buyer below
 
-    def clean(self):
-        if not self.raw:
-            raise ValidationError('Addresses may not have a blank `raw` field.')
+        # post save, set user's address to this
+        b = Buyer.objects.get(pk=self.owner)
+        b.address = self
+        b.save()
+
+
+    def __str__(self):
+        return ', '.join([x for x in [self.street_number+' '+self.route, self.neigh, self.city, self.state] if x])
+
+        # old
+        # if self.formatted != '':
+        #     txt = '%s' % self.formatted
+        # elif self.locality:
+        #     txt = ''
+        #     if self.street_number:
+        #         txt = '%s' % self.street_number
+        #     if self.route:
+        #         if txt:
+        #             txt += ' %s' % self.route
+        #     locality = '%s' % self.locality
+        #     if txt and locality:
+        #         txt += ', '
+        #     txt += locality
+        # else:
+        #     txt = '%s' % self.raw
+        # return txt
+
+    # def clean(self):
+    #     if not self.raw:
+    #         raise ValidationError('Addresses may not have a blank `raw` field.')
 
     def as_dict(self):
         ad = dict(

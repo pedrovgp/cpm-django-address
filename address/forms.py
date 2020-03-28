@@ -5,6 +5,7 @@ import sys
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from .models import Address, to_python
@@ -20,7 +21,19 @@ if sys.version > '3':
     basestring = (str, bytes)
     unicode = str
 
-__all__ = ['AddressWidget', 'AddressField']
+__all__ = ['AddressWidget', 'AddressField', 'AddressForm']
+
+class AddressForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super(AddressForm, self).__init__(*args, **kwargs)
+        self.fields['route'].required = True
+
+
+    class Meta:
+        model = Address
+        fields = ['zip_code', 'street_number', 'route', 'neigh', 'city', 'state']
+        widgets = {'zip_code': forms.TextInput(attrs={'data-mask': "01234-000"})}
 
 class AddressWidget(forms.TextInput):
     components = [('country', 'country'),
