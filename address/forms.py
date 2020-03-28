@@ -3,7 +3,7 @@ import logging
 import sys
 
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field
+from crispy_forms.layout import Layout, Field, ButtonHolder, Submit
 
 from django import forms
 from django.conf import settings
@@ -39,7 +39,16 @@ class AddressForm(forms.ModelForm):
                                           placeholder='00.000-000',
                                           maxlength=8,
                                           data_mask='00.000-000',
-                                          ))
+                                          ),
+                                    Field('street_number'),
+                                    Field('route'),
+                                    Field('neigh'),
+                                    Field('city'),
+                                    Field('state'),
+                                    ButtonHolder(
+                                        Submit('submit', _('Salvar'), css_class='btn btn-primary')
+                                    )
+                                    )
 
     class Meta:
         model = Address
