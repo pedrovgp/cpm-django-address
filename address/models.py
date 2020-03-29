@@ -344,7 +344,6 @@ class Address(AuditMixin, geomodels.Model):
                                       self.city,
                                       self.state,
                                       ' - CEP: '+self.zip_code,
-                                      'Complemento: ' + self.extra,
                                       ] if x])
 
 
