@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='address',
             name='extra',
-            field=models.CharField(blank=True, help_text='Ex.: Bloco A, apto. 40, casa 2', max_length=50, verbose_name='Complemento'),
+            field=models.CharField(blank=True, null=True, help_text='Ex.: Bloco A, apto. 40, casa 2', max_length=50, verbose_name='Complemento'),
         ),
         migrations.AlterField(
             model_name='address',

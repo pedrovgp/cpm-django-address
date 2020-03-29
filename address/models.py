@@ -283,7 +283,7 @@ class Locality(models.Model):
 class Address(AuditMixin, geomodels.Model):
     zip_code = models.CharField(_('CEP'), max_length=8, blank=True, help_text=_('Apenas números.'))
     street_number = models.CharField(_('Número'), max_length=20, blank=True)
-    extra = models.CharField(_('Complemento'), max_length=50, blank=True, help_text=_('Ex.: Bloco A, apto. 40, casa 2'))
+    extra = models.CharField(_('Complemento'), max_length=50, blank=True, null=True, help_text=_('Ex.: Bloco A, apto. 40, casa 2'))
     route = models.CharField(_('Nome da rua/avenida'), max_length=100, blank=True)
     neigh = models.CharField(_('Bairro'), max_length=100, blank=True)
     city = models.CharField(_('Cidade'), max_length=100, blank=True)
