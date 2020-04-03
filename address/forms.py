@@ -37,7 +37,7 @@ class ZipField(forms.CharField):
 
 class AddressForm(forms.ModelForm):
 
-    zip_code = ZipField()
+    zip_code = ZipField(label=_('CEP'), help_text=_('Apenas números'))
 
     def __init__(self, *args, **kwargs):
         super(AddressForm, self).__init__(*args, **kwargs)
