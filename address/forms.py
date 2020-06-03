@@ -47,9 +47,9 @@ class AddressForm(forms.ModelForm):
 
         # Moving field labels into placeholders
         self.helper.layout = Layout(Field('zip_code',
-                                          placeholder='00.000-000',
+                                          placeholder='00000-000',
                                           maxlength=8,
-                                          data_mask='00.000-000',
+                                          data_mask='00000-000',
                                           ),
                                     Field('street_number'),
                                     Field('extra'),
