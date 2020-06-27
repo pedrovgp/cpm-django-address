@@ -120,9 +120,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['AddressWidget', 'AddressField']
 
-if not settings.GOOGLE_API_KEY:
-    raise ImproperlyConfigured("GOOGLE_API_KEY is not configured in settings.py")
-
 
 class AddressField(forms.ModelChoiceField):
     widget = AddressWidget
