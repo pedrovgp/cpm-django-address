@@ -5,6 +5,7 @@ from django.conf.urls import url
 
 from . import views
 
+app_name = 'address'
 urlpatterns = [
     url(
         regex=r'^address/add$',
