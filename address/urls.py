@@ -8,7 +8,7 @@ from . import views
 app_name = 'address'
 urlpatterns = [
     re_path(
-        regex=r'^address/add$',
+        r'^address/add$',
         view=views.AddressCreateView.as_view(),
         name='address-create-view'
     ),
