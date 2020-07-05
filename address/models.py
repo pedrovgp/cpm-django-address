@@ -320,7 +320,7 @@ class Address(AuditMixin, geomodels.Model):
         super(Address, self).save(*args, **kwargs)
 
         # post save, set user's address to this
-        b = Buyer.objects.get(pk=self.owner)
+        b = Buyer.objects.get(user=self.owner)
         b.address = self
         b.save()
 
